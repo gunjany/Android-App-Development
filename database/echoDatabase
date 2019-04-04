@@ -9,7 +9,7 @@ import android.os.Build
 import android.support.annotation.RequiresApi
 import com.gunjany.echomusic.Songs
 
-
+//using SQLite
 class EchoDatabase : SQLiteOpenHelper {
     var _songList = ArrayList<Songs>()
 
