@@ -1,0 +1,141 @@
+package com.gunjany.echomusic.database
+
+import android.annotation.SuppressLint
+import android.content.ContentValues
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import android.os.Build
+import android.support.annotation.RequiresApi
+import com.gunjany.echomusic.Songs
+
+
+class EchoDatabase : SQLiteOpenHelper {
+    var _songList = ArrayList<Songs>()
+
+    object Staticated {
+
+        val DB_NAME = "FavoriteDatabase"
+        val TABLE_NAME = "FavoriteTable"
+        val COLUMN_ID = "SongID"
+        val COLUMN_SONG_TITLE = "SongTitle"
+        val COLUMN_SONG_ARTIST = "SongArtist"
+        val COLUMN_SONG_PATh = "SongPath"
+        var DB_VERSION = 1
+    }
+
+    @SuppressLint("SQLiteString")
+    override fun onCreate(sqliteDatabase: SQLiteDatabase?) {
+
+        sqliteDatabase?.execSQL("CREATE TABLE " + Staticated.TABLE_NAME + "( " + Staticated.COLUMN_ID + " INTEGER, " + Staticated.COLUMN_SONG_ARTIST +
+                " STRING, " + Staticated.COLUMN_SONG_TITLE + " STRING, " + Staticated.COLUMN_SONG_PATh + " STRING);"
+        )
+
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+
+    }
+
+    constructor(context: Context?, name: String?, factory: SQLiteDatabase.CursorFactory?, version: Int) : super(context, name, factory, version)
+    constructor(context: Context?) : super(context, Staticated.DB_NAME, null, Staticated.DB_VERSION)
+
+    fun saveAsFavorite(id: Int, artist: String?, songTitle: String?, path: String?) {
+        val db = this.writableDatabase
+
+        var contentValues = ContentValues()
+
+        contentValues.put(Staticated.COLUMN_ID, id)
+        contentValues.put(Staticated.COLUMN_SONG_ARTIST, artist)
+        contentValues.put(Staticated.COLUMN_SONG_TITLE, songTitle)
+        contentValues.put(Staticated.COLUMN_SONG_PATh, path)
+
+        db.insert(Staticated.TABLE_NAME, null, contentValues)
+        db.close()
+    }
+
+    @SuppressLint("Recycle")
+    fun queryDBList(): ArrayList<Songs>? {
+
+        try {
+            val db = this.readableDatabase
+            val query_params = "SELECT * FROM " + Staticated.TABLE_NAME
+            var cSor = db.rawQuery(query_params, null)
+            if (cSor.moveToFirst()) {
+                do {
+
+                    var _id = cSor.getInt(cSor.getColumnIndexOrThrow(Staticated.COLUMN_ID))
+                    var _artist = cSor.getString(cSor.getColumnIndexOrThrow(Staticated.COLUMN_SONG_ARTIST))
+                    var _title = cSor.getString(cSor.getColumnIndexOrThrow(Staticated.COLUMN_SONG_TITLE))
+                    var _path = cSor.getString(cSor.getColumnIndexOrThrow(Staticated.COLUMN_SONG_PATh))
+
+                    _songList.add(Songs(_id.toLong(), _title, _artist, _path, 0))
+
+                } while (cSor.moveToNext())
+            } else {
+                return null
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return _songList
+
+    }
+
+    @SuppressLint("Recycle")
+            /*This function is created for checking whether a particular song is a favorite or
+    not*/
+    fun checkifIdExists(_id: Int): Boolean {
+/*Random id which does not exist
+* We know that this id can never exist as the song id cannot be less than 0*/
+        var storeId = -1090
+        val db = this.readableDatabase
+/*The query for checking the if id is present or not is
+* SELECT * FROM FavoriteTable WHERE SongID = <id_of_our_song>*/
+        var query_params = "SELECT * FROM " + Staticated.TABLE_NAME + " WHERE SongID = '$_id'"
+        var cSor = db.rawQuery(query_params, null)
+        if (cSor.moveToFirst()) {
+            do {
+/*Storing the song id into the variable storeId*/
+                storeId = cSor.getInt(cSor.getColumnIndexOrThrow(Staticated.COLUMN_ID))
+            } while (cSor.moveToNext())
+        } else {
+            return false
+        }
+/*Here we need to return a boolean value i.e. true or false
+* Hence we check if the store id is not equal to -1090 then we return true, else we
+return false*/
+        return storeId != -1090
+    }
+
+    fun deleteFavorite(_id: Int) {
+
+        val db = this.writableDatabase
+        db.delete(Staticated.TABLE_NAME, Staticated.COLUMN_ID + "=" + _id, null)
+        db.close()
+    }
+
+
+    @SuppressLint("Recycle")
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+/*The function checkSize() is used to calculate whether we have any song as favorite or
+        not*/
+    fun checkSize(): Int {
+        var counter = 0
+        val db = this.readableDatabase
+        var query_params = "SELECT * FROM " + Staticated.TABLE_NAME
+        var cSor = db.rawQuery(query_params, null)
+        if (cSor.moveToFirst()) {
+
+            do {
+                counter += 1
+            } while (cSor.moveToNext())
+        } else {
+            return 0
+        }
+
+        return counter
+    }
+}
